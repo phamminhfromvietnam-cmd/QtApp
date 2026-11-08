@@ -1,4 +1,3 @@
-#include <iostream>
-int main(){
-    std::cout<<"Hello world!";
+#include <mainwindow.hpp>
+int main(int argc,char *argv[]){
 }
