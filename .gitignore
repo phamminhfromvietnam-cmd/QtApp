@@ -1,0 +1,9 @@
+#executables
+*.exe
+*.obj
+*.o
+#library
+build/
+bin/
+#CMake features
+CMakeLists.txt
