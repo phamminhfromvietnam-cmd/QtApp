@@ -11,6 +11,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Check repository files
+        shell: pwsh
+        run: |
+          Get-Location
+          Get-ChildItem -Force
+          Test-Path .\CMakeLists.txt
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
