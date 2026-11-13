@@ -1,0 +1,14 @@
+#include <QApplication>
+#include <QDebug>
+#include <QHeaderView>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QSortFilterProxyModel>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QSqlQueryModel>
+#include <QTableView>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <QWidget>
