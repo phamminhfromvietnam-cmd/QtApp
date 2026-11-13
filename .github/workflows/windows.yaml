@@ -11,6 +11,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        name: Debug Workspace Files
+        shell: pwsh
+        run: |
+          Write-Host "Current location: $(Get-Location)"
+          Write-Host "Contents of workspace:"
+          Get-ChildItem -Recurse -Depth 2
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
