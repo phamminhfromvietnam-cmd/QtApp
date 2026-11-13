@@ -1,0 +1,41 @@
+name: Build Windows app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Deploy Qt libraries
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build -Recurse -Filter *.exe |
+            Where-Object { $_.Name -notmatch '^(cmake|ninja|.*_autogen).*' } |
+            Select-Object -First 1
+          & "$env:QT_ROOT_DIR\bin\windeployqt.exe" --release $exe.FullName
+
+      - name: Upload app folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: build/
