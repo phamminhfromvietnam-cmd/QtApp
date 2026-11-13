@@ -27,9 +27,11 @@ jobs:
           arch: win64_msvc2022_64
 
       - name: Configure
+        shell: pwsh
         run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
+        shell: pwsh
         run: cmake --build build --config Release
 
       - name: Deploy Qt libraries
