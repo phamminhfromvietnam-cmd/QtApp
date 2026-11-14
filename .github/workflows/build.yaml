@@ -33,60 +33,26 @@ jobs:
 
           windeployqt --release --no-translations (Join-Path $releaseDir $exeName)
 
-      - name: Create Single-File SFX Executable
+      - name: Create Portable Zip Archive
         shell: pwsh
         run: |
           $releaseDir = Join-Path $PWD "release"
-          $archiveName = Join-Path $PWD "app.7z"
-          $outputExe = Join-Path $PWD "QtApplication-Installer.exe"
-
-          # 1. Auto-detect the target executable name
-          $targetExe = (Get-ChildItem -Path $releaseDir -Filter "*.exe" | Select-Object -First 1).Name
-          Write-Host "Target executable: $targetExe"
-
-          # 2. Generate the config file using a safe array instead of a here-string
-          $configPath = Join-Path $PWD "sfx_config.txt"
-          $configLines = @(
-              ";!@Install@!UTF-8!",
-              'Title="Qt Application"',
-              "RunProgram=""hidcon:$targetExe""",
-              ";!@InstallEnd@!"
-          )
-          Set-Content -Path $configPath -Value $configLines -Encoding utf8
-
-          # 3. Locate 7zCon.sfx module
-          $sfxModule = "C:\Program Files\7-Zip\7zCon.sfx"
-          if (-not (Test-Path $sfxModule)) {
-              throw "Default 7zCon.sfx module not found at $sfxModule"
-          }
-
-          # 4. Create the standard 7z archive of the release folder
-          $sevenZipExe = "C:\Program Files\7-Zip\7z.exe"
-          Push-Location $releaseDir
-          & $sevenZipExe a -t7z $archiveName "*"
-          Pop-Location
-
-          # 5. Combine everything into a single executable using absolute paths
-          Write-Host "Assembling final executable at: $outputExe"
-          $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
-          try {
-              [System.IO.File]::OpenRead($sfxModule).CopyTo($fs)
-              [System.IO.File]::OpenRead($configPath).CopyTo($fs)
-              [System.IO.File]::OpenRead($archiveName).CopyTo($fs)
-          } finally {
-              $fs.Dispose()
-          }
-
-          # 6. Verify absolute file existence
-          if (Test-Path $outputExe) {
-              $fileSize = (Get-Item $outputExe).Length
-              Write-Host "SUCCESS: Generated $outputExe ($fileSize bytes)"
+          $zipName = Join-Path $PWD "QtApplication-Portable.zip"
+          
+          if (Test-Path $zipName) { Remove-Item $zipName }
+          
+          # Compress the release folder cleanly using native PowerShell
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipName -Force
+          
+          if (Test-Path $zipName) {
+              $size = (Get-Item $zipName).Length
+              Write-Host "SUCCESS: Created $zipName ($size bytes)"
           } else {
-              throw "CRITICAL: Failed to create $outputExe"
+              throw "Failed to create zip archive."
           }
 
-      - name: Upload Single-File Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-single-file-app
-          path: ${{ github.workspace }}/QtApplication-Installer.exe
+          name: windows-portable-app
+          path: QtApplication-Portable.zip
