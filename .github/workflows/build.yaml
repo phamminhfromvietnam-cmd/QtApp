@@ -44,15 +44,15 @@ jobs:
           $targetExe = (Get-ChildItem -Path $releaseDir -Filter "*.exe" | Select-Object -First 1).Name
           Write-Host "Target executable: $targetExe"
 
-          # 2. Generate the config file (flush-left to prevent 7-Zip key-parsing errors)
+          # 2. Generate the config file using a safe array instead of a here-string
           $configPath = Join-Path $PWD "sfx_config.txt"
-          $configContent = @"
-;!@Install@!UTF-8!
-Title="Qt Application"
-RunProgram="hidcon:$targetExe"
-;!@InstallEnd@!
-"@
-          Set-Content -Path $configPath -Value $configContent -Encoding utf8
+          $configLines = @(
+              ";!@Install@!UTF-8!",
+              'Title="Qt Application"',
+              "RunProgram=""hidcon:$targetExe""",
+              ";!@InstallEnd@!"
+          )
+          Set-Content -Path $configPath -Value $configLines -Encoding utf8
 
           # 3. Locate 7zCon.sfx module
           $sfxModule = "C:\Program Files\7-Zip\7zCon.sfx"
