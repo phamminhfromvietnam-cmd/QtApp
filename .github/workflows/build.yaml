@@ -11,7 +11,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.0' # Match your Qt version
+          version: '6.8.0'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_mingw'
@@ -27,8 +27,34 @@ jobs:
           copy build\QtApplication.exe release\
           windeployqt --release --no-translations release\QtApplication.exe
 
-      - name: Upload Zip
+      - name: Create Single-File SFX Executable
+        shell: pwsh
+        run: |
+          # Automatically create the sfx config file inline so you don't need a separate file
+          $configContent = ";!@Install@!UTF-8!`nTitle=`"Qt Application`"`nRun=`"QtApplication.exe`"`n;!@InstallEnd@!"
+          [System.IO.File]::WriteAllText("sfx_config.txt", $configContent)
+
+          # Download the 7-Zip SFX module
+          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-extra.7z" -OutFile "7z-extra.7z"
+          Expand-Archive "7z-extra.7z" -DestinationPath "7z-extra"
+          
+          # Create a standard 7z archive of your release folder
+          cd release
+          & "C:\Program Files\7-Zip\7z.exe" a -t7z ..\app.7z *
+          cd ..
+
+          # Combine the SFX module, config, and archive into a single final .exe
+          $sfxModule = "7z-extra\7z.sfx"
+          $config = "sfx_config.txt"
+          $archive = "app.7z"
+          $outputExe = "QtApplication-Installer.exe"
+
+          [System.IO.File]::WriteAllBytes($outputExe, [System.IO.File]::ReadAllBytes($sfxModule))
+          [System.IO.File]::AppendAllBytes($outputExe, [System.IO.File]::ReadAllBytes($config))
+          [System.IO.File]::AppendAllBytes($outputExe, [System.IO.File]::ReadAllBytes($archive))
+
+      - name: Upload Single-File Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QTAppWindows-x64
-          path: release/
+          name: windows-single-file-app
+          path: QtApplication-Installer.exe
