@@ -30,25 +30,32 @@ jobs:
       - name: Create Single-File SFX Executable
         shell: pwsh
         run: |
-          # Create config using a clean PowerShell here-string
+          # Create config using RunProgram so it executes automatically after extraction
           $configContent = @"
           ;!@Install@!UTF-8!
           Title="Qt Application"
-          Run="QtApplication.exe"
+          RunProgram="QtApplication.exe"
           ;!@InstallEnd@!
           "@
           Set-Content -Path "sfx_config.txt" -Value $configContent -Encoding utf8
 
+          # Download 7-Zip extra package containing the installer SFX module (7zS.sfx)
+          $sfxUrl = "https://sourceforge.net/projects/sevenzip/files/7-Zip/26.05/7z2605-extra.7z/download"
+          Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
+          
+          # Extract the .7z package using the pre-installed 7-Zip binary
+          & "C:\Program Files\7-Zip\7z.exe" x 7z-extra.7z -o"7z-extra" -y
+          
           # Create a standard 7z archive of your release folder
           cd release
           & "C:\Program Files\7-Zip\7z.exe" a -t7z ..\app.7z *
           cd ..
 
-          # Combine files safely using .NET file streams
+          # Combine the installer SFX module, config, and archive into a single final .exe
           $outputExe = "QtApplication-Installer.exe"
           $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
           try {
-              [System.IO.File]::OpenRead("C:\Program Files\7-Zip\7z.sfx").CopyTo($fs)
+              [System.IO.File]::OpenRead("7z-extra\7zS.sfx").CopyTo($fs)
               [System.IO.File]::OpenRead("sfx_config.txt").CopyTo($fs)
               [System.IO.File]::OpenRead("app.7z").CopyTo($fs)
           } finally {
