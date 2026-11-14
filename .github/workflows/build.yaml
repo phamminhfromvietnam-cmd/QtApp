@@ -30,7 +30,7 @@ jobs:
       - name: Create Single-File SFX Executable
         shell: pwsh
         run: |
-          # Create config using RunProgram so it executes automatically after background extraction
+          # 1. Create the silent-installer config file
           $configContent = @"
           ;!@Install@!UTF-8!
           Title="Qt Application"
@@ -39,19 +39,27 @@ jobs:
           "@
           Set-Content -Path "sfx_config.txt" -Value $configContent -Encoding utf8
 
-          # Download the 7-Zip Extra package matching version 26.05
-          $sfxUrl = "https://www.7-zip.org/a/7z2605-extra.7z"
+          # 2. Dynamically fetch the latest 7-Zip extra package link to prevent 404 errors
+          $html = (Invoke-WebRequest -Uri "https://www.7-zip.org/download.html" -UseBasicParsing).Content
+          if ($html -match 'href="(a/7z\d+-extra\.7z)"') {
+              $sfxUrl = "https://www.7-zip.org/" + $Matches[1]
+          } else {
+              # Fallback to a known stable direct link if scraping fails
+              $sfxUrl = "https://www.7-zip.org/a/7z2409-extra.7z"
+          }
+          
+          Write-Host "Downloading 7-Zip extra from: $sfxUrl"
           Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
           
-          # Extract the extra package
+          # 3. Extract the extra package containing 7zS.sfx
           & "C:\Program Files\7-Zip\7z.exe" x 7z-extra.7z -o"7z-extra" -y
           
-          # Create a standard 7z archive of your release folder
+          # 4. Create the standard 7z archive of your release folder
           cd release
           & "C:\Program Files\7-Zip\7z.exe" a -t7z ..\app.7z *
           cd ..
 
-          # Combine the silent-execution SFX module, config, and archive into a single final .exe
+          # 5. Combine everything into a single zero-setup executable
           $outputExe = "QtApplication-Installer.exe"
           $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
           try {
