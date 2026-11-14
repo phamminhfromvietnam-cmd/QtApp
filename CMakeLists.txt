@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.20)
+project(QtApplication VERSION 1.0 LANGUAGES CXX)
+set(OpenGL_GL_PREFERENCE GLVND)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Sql)
+qt_add_executable(QtApplication src/main.cpp)
+target_include_directories(QtApplication PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(QtApplication PRIVATE Qt6::Widgets Qt6::Sql)
+
