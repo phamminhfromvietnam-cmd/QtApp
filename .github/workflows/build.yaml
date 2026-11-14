@@ -1,0 +1,30 @@
+name: Build Windows Executable
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest  # Runs on a native Windows machine in the cloud
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Setup your compiler/toolchain on Windows automatically
+      - name: Add MSYS2 or MinGW to Path
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-fmt
+
+      # Build natively on Windows (no cross-compilation headaches)
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          g++ main.cpp -o myapp.exe -lfmt
+          
+      # Automatically bundle .exe and ALL dependent DLLs using windeployqt or ldd equivalents
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: myapp.exe
