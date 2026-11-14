@@ -11,12 +11,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Check repository files
+        name: Debug Workspace Files
         shell: pwsh
         run: |
-          Get-Location
-          Get-ChildItem -Force
-          Test-Path .\CMakeLists.txt
+          Write-Host "Current location: $(Get-Location)"
+          Write-Host "Contents of workspace:"
+          Get-ChildItem -Recurse -Depth 2
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -25,19 +28,20 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
+          dir: ${{ runner.temp }}/Qt
 
       - name: Configure
         shell: pwsh
-        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S "$env:GITHUB_WORKSPACE" -B "$env:GITHUB_WORKSPACE/build" -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         shell: pwsh
-        run: cmake --build build --config Release
+        run: cmake --build "$env:GITHUB_WORKSPACE/build" --config Release
 
       - name: Deploy Qt libraries
         shell: pwsh
         run: |
-          $exe = Get-ChildItem build -Recurse -Filter *.exe |
+          $exe = Get-ChildItem "$env:GITHUB_WORKSPACE/build" -Recurse -Filter *.exe |
             Where-Object { $_.Name -notmatch '^(cmake|ninja|.*_autogen).*' } |
             Select-Object -First 1
           & "$env:QT_ROOT_DIR\bin\windeployqt.exe" --release $exe.FullName
