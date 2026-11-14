@@ -39,11 +39,11 @@ jobs:
           "@
           Set-Content -Path "sfx_config.txt" -Value $configContent -Encoding utf8
 
-          # Download 7-Zip extra package containing the installer SFX module (7zS.sfx)
-          $sfxUrl = "https://sourceforge.net/projects/sevenzip/files/7-Zip/26.05/7z2605-extra.7z/download"
+          # Download 7-Zip extra package from a reliable direct mirror
+          $sfxUrl = "https://www.7-zip.org/a/7z2408-extra.7z"
           Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
           
-          # Extract the .7z package using the pre-installed 7-Zip binary
+          # Extract the package
           & "C:\Program Files\7-Zip\7z.exe" x 7z-extra.7z -o"7z-extra" -y
           
           # Create a standard 7z archive of your release folder
