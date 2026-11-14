@@ -27,42 +27,66 @@ jobs:
           $builtExe = (Get-ChildItem -Path "build" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName
           $exeName = [System.IO.Path]::GetFileName($builtExe)
           
-          $releaseDir = "release"
+          $releaseDir = Join-Path $PWD "release"
           New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-          Copy-Item -Path $builtExe -Destination $releaseDir\
+          Copy-Item -Path $builtExe -Destination "$releaseDir\"
 
-          windeployqt --release --no-translations "$releaseDir\$exeName"
+          windeployqt --release --no-translations (Join-Path $releaseDir $exeName)
 
-      - name: Create Native Single-File Executable
+      - name: Create Single-File SFX Executable
         shell: pwsh
         run: |
-          $releaseDir = "release"
-          $outputExe = "QtApplication-Installer.exe"
+          $releaseDir = Join-Path $PWD "release"
+          $archiveName = Join-Path $PWD "app.7z"
+          $outputExe = Join-Path $PWD "QtApplication-Installer.exe"
 
           # 1. Auto-detect the target executable name
           $targetExe = (Get-ChildItem -Path $releaseDir -Filter "*.exe" | Select-Object -First 1).Name
-          Write-Host "Auto-detected application binary: $targetExe"
+          Write-Host "Target executable: $targetExe"
 
-          # 2. Compress the release folder into a zip archive
-          $zipPath = "app.zip"
-          if (Test-Path $zipPath) { Remove-Item $zipPath }
-          Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipPath
+          # 2. Generate the config file (flush-left to prevent 7-Zip key-parsing errors)
+          $configPath = Join-Path $PWD "sfx_config.txt"
+          $configContent = @"
+;!@Install@!UTF-8!
+Title="Qt Application"
+RunProgram="hidcon:$targetExe"
+;!@InstallEnd@!
+"@
+          Set-Content -Path $configPath -Value $configContent -Encoding utf8
 
-          # 3. Write a self-extracting bootstrap script that runs invisibly and launches the app
-          $bootstrapScript = @"
-          \$tempDir = Join-Path \$env:TEMP ([Guid]::NewGuid().ToString())
-          New-Item -ItemType Directory -Force -Path \$tempDir | Out-Null
+          # 3. Locate 7zCon.sfx module
+          $sfxModule = "C:\Program Files\7-Zip\7zCon.sfx"
+          if (-not (Test-Path $sfxModule)) {
+              throw "Default 7zCon.sfx module not found at $sfxModule"
+          }
 
-          # Extract embedded zip data
-          \$mySelf = \$MyInvocation.MyCommand.Path
-          \$zipOffset = [System.IO.File]::ReadAllBytes(\$mySelf)
-          # (Self-extracting payload logic follows...)
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          
-          # Find and extract zip stream appended to this exe
-          \$fs = [System.IO.File]::OpenRead(\$mySelf)
-          # Read bytes matching our zip content and extract to tempDir...
-          # [Streamlined native execution block omitted for brevity, or use a clean wrapper]
-          "@
+          # 4. Create the standard 7z archive of the release folder
+          $sevenZipExe = "C:\Program Files\7-Zip\7z.exe"
+          Push-Location $releaseDir
+          & $sevenZipExe a -t7z $archiveName "*"
+          Pop-Location
 
-          # Alternative cleaner approach: Use 7-Zip's built-in console SFX (7zCon.sfx) which IS included natively!
+          # 5. Combine everything into a single executable using absolute paths
+          Write-Host "Assembling final executable at: $outputExe"
+          $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
+          try {
+              [System.IO.File]::OpenRead($sfxModule).CopyTo($fs)
+              [System.IO.File]::OpenRead($configPath).CopyTo($fs)
+              [System.IO.File]::OpenRead($archiveName).CopyTo($fs)
+          } finally {
+              $fs.Dispose()
+          }
+
+          # 6. Verify absolute file existence
+          if (Test-Path $outputExe) {
+              $fileSize = (Get-Item $outputExe).Length
+              Write-Host "SUCCESS: Generated $outputExe ($fileSize bytes)"
+          } else {
+              throw "CRITICAL: Failed to create $outputExe"
+          }
+
+      - name: Upload Single-File Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-single-file-app
+          path: ${{ github.workspace }}/QtApplication-Installer.exe
