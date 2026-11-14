@@ -1,30 +1,34 @@
-name: Build Windows Executable
+name: Build Qt Windows Release
 
 on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest  # Runs on a native Windows machine in the cloud
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
-      # Setup your compiler/toolchain on Windows automatically
-      - name: Add MSYS2 or MinGW to Path
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-fmt
 
-      # Build natively on Windows (no cross-compilation headaches)
-      - name: Build
-        shell: msys2 {0}
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0' # Match your Qt version
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_mingw'
+
+      - name: Configure & Build
         run: |
-          g++ src/main.cpp -o myapp.exe -lfmt
-          
-      # Automatically bundle .exe and ALL dependent DLLs using windeployqt or ldd equivalents
-      - name: Upload Artifacts
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Bundle DLLs with windeployqt
+        run: |
+          mkdir release
+          copy build\YourAppName.exe release\
+          windeployqt --release --no-translations release\YourAppName.exe
+
+      - name: Upload Zip
         uses: actions/upload-artifact@v4
         with:
-          name: windows-app
-          path: myapp.exe
+          name: YourApp-Windows-x64
+          path: release/
