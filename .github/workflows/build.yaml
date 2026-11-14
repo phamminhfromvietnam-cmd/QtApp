@@ -33,7 +33,7 @@ jobs:
           $configContent = ";!@Install@!UTF-8!`nTitle=`"Qt Application`"`nRun=`"QtApplication.exe`"`n;!@InstallEnd@!"
           [System.IO.File]::WriteAllText("sfx_config.txt", $configContent)
 
-          $sfxUrl = "https://www.7-zip.org/a/7z2408-extra.7z"
+          $sfxUrl = "https://github.com/ip7z/7zip/releases/download/26.06/7z2606-extra.7z"
           Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
           Expand-Archive "7z-extra.7z" -DestinationPath "7z-extra"
           
