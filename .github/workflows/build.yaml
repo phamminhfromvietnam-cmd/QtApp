@@ -30,7 +30,7 @@ jobs:
       - name: Create Single-File SFX Executable
         shell: pwsh
         run: |
-          # 1. Create the silent-installer config file
+          # 1. Create the silent-installer config file using a here-string
           $configContent = @"
           ;!@Install@!UTF-8!
           Title="Qt Application"
@@ -39,27 +39,20 @@ jobs:
           "@
           Set-Content -Path "sfx_config.txt" -Value $configContent -Encoding utf8
 
-          # 2. Dynamically fetch the latest 7-Zip extra package link to prevent 404 errors
-          $html = (Invoke-WebRequest -Uri "https://www.7-zip.org/download.html" -UseBasicParsing).Content
-          if ($html -match 'href="(a/7z\d+-extra\.7z)"') {
-              $sfxUrl = "https://www.7-zip.org/" + $Matches[1]
-          } else {
-              # Fallback to a known stable direct link if scraping fails
-              $sfxUrl = "https://www.7-zip.org/a/7z2409-extra.7z"
-          }
-          
-          Write-Host "Downloading 7-Zip extra from: $sfxUrl"
+          # 2. Download the 7-Zip extra package from GitHub's reliable release CDN
+          $sfxUrl = "https://github.com/ip7z/7zip/releases/download/24.09/7z2409-extra.7z"
+          Write-Host "Downloading from GitHub CDN: $sfxUrl"
           Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
           
-          # 3. Extract the extra package containing 7zS.sfx
+          # 3. Extract the extra package containing the 7zS.sfx installer module
           & "C:\Program Files\7-Zip\7z.exe" x 7z-extra.7z -o"7z-extra" -y
           
-          # 4. Create the standard 7z archive of your release folder
+          # 4. Create a standard 7z archive of your release folder
           cd release
           & "C:\Program Files\7-Zip\7z.exe" a -t7z ..\app.7z *
           cd ..
 
-          # 5. Combine everything into a single zero-setup executable
+          # 5. Combine the modules safely using .NET file streams into a zero-setup executable
           $outputExe = "QtApplication-Installer.exe"
           $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
           try {
