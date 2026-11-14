@@ -30,7 +30,7 @@ jobs:
       - name: Create Single-File SFX Executable
         shell: pwsh
         run: |
-          # Create config using RunProgram so it executes automatically after extraction
+          # Create config using RunProgram so it executes automatically after background extraction
           $configContent = @"
           ;!@Install@!UTF-8!
           Title="Qt Application"
@@ -39,11 +39,11 @@ jobs:
           "@
           Set-Content -Path "sfx_config.txt" -Value $configContent -Encoding utf8
 
-          # Download 7-Zip extra package from a reliable direct mirror
-          $sfxUrl = "https://www.7-zip.org/a/7z2408-extra.7z"
+          # Download the official 7-Zip Extra package containing 7zS.sfx
+          $sfxUrl = "https://www.7-zip.org/a/7z2606-extra.7z"
           Invoke-WebRequest -Uri $sfxUrl -OutFile "7z-extra.7z"
           
-          # Extract the package
+          # Extract the extra package
           & "C:\Program Files\7-Zip\7z.exe" x 7z-extra.7z -o"7z-extra" -y
           
           # Create a standard 7z archive of your release folder
@@ -51,7 +51,7 @@ jobs:
           & "C:\Program Files\7-Zip\7z.exe" a -t7z ..\app.7z *
           cd ..
 
-          # Combine the installer SFX module, config, and archive into a single final .exe
+          # Combine the silent-execution SFX module, config, and archive into a single final .exe
           $outputExe = "QtApplication-Installer.exe"
           $fs = [System.IO.File]::Open($outputExe, [System.IO.FileMode]::Create)
           try {
