@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir release
           copy build\YourAppName.exe release\
-          windeployqt --release --no-translations release\YourAppName.exe
+          windeployqt --release --no-translations release\QtApplication.exe
 
       - name: Upload Zip
         uses: actions/upload-artifact@v4
