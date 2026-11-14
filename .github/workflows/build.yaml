@@ -20,7 +20,7 @@ jobs:
       - name: Build
         shell: msys2 {0}
         run: |
-          g++ main.cpp -o myapp.exe -lfmt
+          g++ src/main.cpp -o myapp.exe -lfmt
           
       # Automatically bundle .exe and ALL dependent DLLs using windeployqt or ldd equivalents
       - name: Upload Artifacts
