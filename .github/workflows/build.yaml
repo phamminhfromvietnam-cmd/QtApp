@@ -24,11 +24,11 @@ jobs:
       - name: Bundle DLLs with windeployqt
         run: |
           mkdir release
-          copy build\YourAppName.exe release\
+          copy build\QtApplication.exe release\
           windeployqt --release --no-translations release\QtApplication.exe
 
       - name: Upload Zip
         uses: actions/upload-artifact@v4
         with:
-          name: YourApp-Windows-x64
+          name: QTAppWindows-x64
           path: release/
